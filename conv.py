@@ -1,4 +1,3 @@
-
 CRC16_XMODEM_TABLE = [
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
     0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
@@ -34,11 +33,39 @@ CRC16_XMODEM_TABLE = [
     0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
 ]
 
-def crc16(data):
+def crc16(data: bytes) -> int:
     crc=0
     for byte in data:
         crc = ((crc<<8)&0xff00) ^ CRC16_XMODEM_TABLE[((crc>>8)&0xff)^byte]
     return crc & 0xffff
 
-def float16_from_bytes(data:bytes, scale = 1e1):
-    return ( data[0] << 8 | data[1] ) / scale
+def crc16_as_uint16(data: bytes) -> bytes:
+    return uint16_to_bytes(crc16(data))
+
+
+def float32_to_bytes(number: float, scale: float = 1e1) -> bytes:
+    return uint32_to_bytes(int(number * scale))
+
+def float16_to_bytes(number: float, scale: float) -> bytes:
+    return uint16_to_bytes(int(number * scale))
+
+
+def uint32_to_bytes(number:int) -> bytes:
+    return number.to_bytes(4, byteorder='big')
+
+def uint16_to_bytes(number: int) -> bytes:
+    return number.to_bytes(2, byteorder='big')
+
+def uint8_to_bytes(number: int) -> bytes:
+    return number.to_bytes(1, byteorder='big')
+
+
+def float_from_bytes(data: bytes, scale: float = 1e1) -> float:
+    return uint_from_bytes(data) / scale
+
+def uint_from_bytes(data: bytes) -> int:
+    return int.from_bytes(data, byteorder='big')
+
+
+def binstr_to_bytes(binstr: str) -> bytes:
+    return int(binstr, 2).to_bytes((len(binstr) + 7) // 8, 'big')
