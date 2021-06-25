@@ -46,7 +46,7 @@ class UART:
         with self.multithread_lock:
             packet = uart_packet.UART_Packet()
             packet.build_packet(command, data, controller_id)
-            if self.debug: print("UART:SND", packet.full.hex(" "))
+            if self.debug: print("UART:SND", packet.full.hex())
             self.serial_port.write(packet.full)
 
     def receive_packet(self, timeout_ms: int = 100, allow_incorrect_crc: bool = False) -> uart_packet.UART_Packet:
@@ -71,5 +71,5 @@ class UART:
                     break
 
             packet = uart_packet.UART_Packet().parse(bytes(rcvd), allow_incorrect_crc)
-            if self.debug: print("UART:RCV", packet.full.hex(" "))
+            if self.debug: print("UART:RCV", packet.full.hex())
             return packet

@@ -11,6 +11,7 @@ import network
 print("starting server")
 server = network.ApiServer()
 server.start_server("0.0.0.0", 2002)
+exit(0)
 
 uart = uart.UART(debug=True)
 uart.connect("COM4", 115200)
@@ -26,5 +27,5 @@ while 1:
 
     print("req_time:", int((time.time() * 1000) - sended))
 
-    time.sleep(2)
-    break
+    time.sleep(1)
+    #break

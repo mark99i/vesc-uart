@@ -7,8 +7,11 @@ class Commands:
 
     @staticmethod
     def perform_command(uart: UART, command: str, controller_id: int = -1):
-
-        pass
+        if command == "COMM_GET_VALUES":
+            return Commands.COMM_GET_VALUES(uart, controller_id)
+        
+        if command == "COMM_FW_VERSION":
+            return Commands.COMM_FW_VERSION(uart, controller_id)
 
     @staticmethod
     def COMM_GET_VALUES(uart: UART, controller_id: int = -1) -> dict:
