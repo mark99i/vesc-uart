@@ -56,9 +56,8 @@ class UART:
             started_op_time_ms = int(time.time() * 1000)
             rcv_need_len = 0
 
-            rcvd += self.serial_port.readall()
             while True:
-                rcvd += self.serial_port.read()
+                rcvd += self.serial_port.read(300)
 
                 if rcv_need_len == 0 and len(rcvd) > 1:
                     rcv_need_len = rcvd[1] + 4
@@ -67,7 +66,7 @@ class UART:
                 if op_time_ms > timeout_ms:
                     raise Exception("Timeout receive packet")
 
-                if str(rcvd.hex()).endswith("03") and len(rcvd) > rcv_need_len:
+                if len(rcvd) > rcv_need_len and rcvd[-1] == 3:
                     break
 
             packet = uart_packet.UART_Packet().parse(bytes(rcvd), allow_incorrect_crc)

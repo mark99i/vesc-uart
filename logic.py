@@ -7,6 +7,10 @@ class Logic:
     uart = None
     local_vesc_id = -1
 
+    @staticmethod
+    def str2int(val: str, default=-1):
+        pass
+
     def work_packet(self, packet: RequestPacket) -> dict:
         if packet.api_endpoint == "/uart/status":
             if self.uart is None:
@@ -32,9 +36,6 @@ class Logic:
         if self.uart is None or self.uart.status != datatypes.COM_States.connected:
             return {"success": False, "message": "need_serial_connection_setup"}
 
-
-
-
         if packet.api_endpoint == "/vesc/local/id":
             vesc_id = Commands.get_local_controller_id(self.uart)
             return {"success": True, "controller_id": vesc_id}
@@ -42,6 +43,21 @@ class Logic:
         if packet.api_endpoint == "/vesc/local/can/scan":
             vesc_ids_on_bus = Commands.scan_can_bus(self.uart)
             return {"success": True, "vesc_ids_on_bus": vesc_ids_on_bus}
+
+        if packet.api_endpoint == "/vescs/command/":
+            command = packet.api_endpoint[15:]
+            vesc_ids: list = packet.json_root["vesc_ids"]
+
+            answer = {}
+            answer["data"] = {}
+            for vesc_id in vesc_ids:
+                if int(vesc_id) < 0:
+                    vesc_id = -1
+                comm_result = Commands.perform_command(self.uart, command, vesc_id)
+                if comm_result is None: return {"success": False, "message": "unknown_command"}
+                answer["data"][vesc_id] = Commands.perform_command(self.uart, command, vesc_id)
+            answer["success"] = True
+            return answer
 
 
         if packet.api_endpoint.startswith("/vesc/"):
