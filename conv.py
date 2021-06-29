@@ -68,4 +68,5 @@ def uint_from_bytes(data: bytes) -> int:
 
 
 def binstr_to_bytes(binstr: str) -> bytes:
+    binstr = binstr.replace(" ", "")
     return int(binstr, 2).to_bytes((len(binstr) + 7) // 8, 'big')

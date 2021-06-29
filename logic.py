@@ -5,21 +5,24 @@ from commands import Commands
 
 class Logic:
     uart = None
-    local_vesc_id = -1
-
-    @staticmethod
-    def str2int(val: str, default=-1):
-        pass
+    vesc = Commands()
+    local_id = -1
 
     def work_packet(self, packet: RequestPacket) -> dict:
+
+        # get service/uart status and stats
         if packet.api_endpoint == "/uart/status":
             if self.uart is None:
-                return {"success": True, "status": "not_configured"}
+                return {"success": True, "status": "not_configured", "stats": self.vesc.stats}
             else:
-                return {"success": True, "status": self.uart.status.name, "speed": self.uart.serial_speed,
-                        "path": self.uart.serial_path, "last_err": self.uart.last_error,
-                        "debug_enabled": self.uart.debug}
+                res = self.vesc.perform_command(self.uart, Commands.LOCAL_ID)
+                if res is not None: self.local_id = int(res.get("id"))
 
+                return {"success": True, "status": self.uart.status.name, "speed": self.uart.serial_speed,
+                        "path": self.uart.serial_path, "last_err": str(self.uart.last_error),
+                        "debug_enabled": self.uart.debug, "local_id": self.local_id, "stats": self.vesc.stats}
+
+        # connecting to serial port
         if packet.api_endpoint == "/uart/connect":
             if self.uart is not None and self.uart.status == datatypes.COM_States.connected:
                 self.uart.serial_port.close()
@@ -30,47 +33,35 @@ class Logic:
             if connect_result:
                 return {"success": True, "status": self.uart.status.name}
             else:
-                return {"success": False, "status": self.uart.status.name, "last_err": uart.UART.last_error,
+                return {"success": False, "status": self.uart.status.name, "last_err": str(uart.UART.last_error),
                         "message": "uart_connection_error"}
 
         if self.uart is None or self.uart.status != datatypes.COM_States.connected:
-            return {"success": False, "message": "need_serial_connection_setup"}
+            return {"success": False, "message": "serial_not_configured"}
 
+        # commands to vesc
         if packet.api_endpoint == "/vesc/local/id":
-            vesc_id = Commands.get_local_controller_id(self.uart)
-            return {"success": True, "controller_id": vesc_id}
+            res = self.vesc.perform_command(self.uart, Commands.LOCAL_ID)
+            if res is None: return {"success": False, "message": "unknown_command_or_error"}
+            return {"success": True, "controller_id": int(res.get("id"))}
 
         if packet.api_endpoint == "/vesc/local/can/scan":
-            vesc_ids_on_bus = Commands.scan_can_bus(self.uart)
-            return {"success": True, "vesc_ids_on_bus": vesc_ids_on_bus}
+            res = self.vesc.perform_command(self.uart, Commands.SCAN_CAN)
+            if res is None: return {"success": False, "message": "unknown_command_or_error"}
+            return {"success": True, "vesc_ids_on_bus": res.get("ids")}
 
         if packet.api_endpoint == "/vescs/command/":
             command = packet.api_endpoint[15:]
             vesc_ids: list = packet.json_root["vesc_ids"]
 
-            answer = {}
-            answer["data"] = {}
+            answer = {"data": {}}
             for vesc_id in vesc_ids:
-                if int(vesc_id) < 0:
-                    vesc_id = -1
-                comm_result = Commands.perform_command(self.uart, command, vesc_id)
-                if comm_result is None: return {"success": False, "message": "unknown_command"}
-                answer["data"][vesc_id] = Commands.perform_command(self.uart, command, vesc_id)
+                if int(vesc_id) < 0: vesc_id = -1
+                comm_result = self.vesc.perform_command(self.uart, command, vesc_id)
+
+                if comm_result is None: return {"success": False, "message": "unknown_command_or_error"}
+                answer["data"][vesc_id] = self.vesc.perform_command(self.uart, command, vesc_id)
             answer["success"] = True
             return answer
-
-
-        if packet.api_endpoint.startswith("/vesc/"):
-            packet.api_endpoint = packet.api_endpoint[6:]
-            vesc_id = packet.api_endpoint[ : packet.api_endpoint.find("/")]
-            if vesc_id == "local" or vesc_id == self.local_vesc_id: vesc_id = -1
-            vesc_id = int(vesc_id)
-            packet.api_endpoint = packet.api_endpoint[packet.api_endpoint.find("/"):]
-
-            if packet.api_endpoint.startswith("/command/"):
-                command = packet.api_endpoint[9:]
-                data = Commands.perform_command(self.uart, command, vesc_id)
-                if data is not None:
-                    return {"success": True, "data": data}
 
         pass

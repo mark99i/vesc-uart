@@ -4,17 +4,40 @@ from uart import UART
 from conv import *
 
 class Commands:
+    SCAN_CAN = "SCAN_CAN"
+    LOCAL_ID = "LOCAL_ID"
 
-    @staticmethod
-    def perform_command(uart: UART, command: str, controller_id: int = -1):
-        if command == "COMM_GET_VALUES":
-            return Commands.COMM_GET_VALUES(uart, controller_id)
+    stats = {"success": 0, "fail_timeout": 0, "fail_crc": 0, "failed_other": 0}
+
+    # noinspection PyTypeChecker
+    def perform_command(self, uart: UART, command: str, controller_id: int = -1) -> dict:
+        try:
+            result: dict = None
+
+            if command == "SCAN_CAN":
+                result = {"ids": self.scan_can_bus(uart)}
+
+            if command == "LOCAL_ID":
+                result = {"id": self.get_local_controller_id(uart)}
+
+            if command == "COMM_GET_VALUES":
+                result = self.COMM_GET_VALUES(uart, controller_id)
         
-        if command == "COMM_FW_VERSION":
-            return Commands.COMM_FW_VERSION(uart, controller_id)
+            if command == "COMM_FW_VERSION":
+                result = self.COMM_FW_VERSION(uart, controller_id)
 
-    @staticmethod
-    def COMM_GET_VALUES(uart: UART, controller_id: int = -1) -> dict:
+            self.stats["success"] += 1
+            return result
+        except Exception as e:
+            if   "Timeout receive packet" in str(e):
+                self.stats["fail_timeout"] += 1
+            elif "incorect CRC" in str(e):
+                self.stats["fail_crc"] += 1
+            else:
+                self.stats["failed_other"] += 1
+            return None
+
+    def COMM_GET_VALUES(self, uart: UART, controller_id: int = -1) -> dict:
         uart.send_command(datatypes.COMM_Types.COMM_GET_VALUES, controller_id=controller_id)
         result = uart.receive_packet()
 
@@ -56,8 +79,7 @@ class Commands:
 
         return dec
 
-    @staticmethod
-    def COMM_FW_VERSION(uart: UART, controller_id: int = -1) -> dict:
+    def COMM_FW_VERSION(self, uart: UART, controller_id: int = -1) -> dict:
         uart.send_command(datatypes.COMM_Types.COMM_FW_VERSION, controller_id=controller_id)
         result = uart.receive_packet()
 
@@ -71,8 +93,7 @@ class Commands:
 
         return dec
 
-    @staticmethod
-    def scan_can_bus(uart: UART):
+    def scan_can_bus(self, uart: UART):
         vesc_ids = []
 
         for i in range(0, 255):
@@ -85,9 +106,8 @@ class Commands:
 
         return vesc_ids
 
-    @staticmethod
-    def get_local_controller_id(uart: UART) -> int:
-        mask_controller_id = "00000000000000100000000000000000"
+    def get_local_controller_id(self, uart: UART) -> int:
+        mask_controller_id = "00000000 00000010 00000000 00000000"
         com = conv.binstr_to_bytes(mask_controller_id)
 
         uart.send_command(datatypes.COMM_Types.COMM_GET_VALUES_SELECTIVE, com)

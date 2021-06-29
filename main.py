@@ -23,7 +23,7 @@ while 1:
     #res = commands.Commands.COMM_FW_VERSION(uart, 15)
     #res = json.dumps(res, indent=4)
     #print(res)
-    print(commands.Commands.get_local_controller_id(uart))
+    #print(commands.Commands.get_local_controller_id(uart))
 
     print("req_time:", int((time.time() * 1000) - sended))
 
