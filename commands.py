@@ -1,3 +1,5 @@
+import traceback
+
 import conv
 import datatypes
 from uart import UART
@@ -10,7 +12,7 @@ class Commands:
     stats = {"success": 0, "fail_timeout": 0, "fail_crc": 0, "failed_other": 0}
 
     # noinspection PyTypeChecker
-    def perform_command(self, uart: UART, command: str, controller_id: int = -1) -> dict:
+    def perform_command(self, uart: UART, command: str, controller_id: int = -1, data: dict = None) -> dict:
         try:
             result: dict = None
 
@@ -26,15 +28,22 @@ class Commands:
             if command == "COMM_FW_VERSION":
                 result = self.COMM_FW_VERSION(uart, controller_id)
 
+            if command == "COMM_SET_CURRENT_BRAKE":
+                self.COMM_SET_CURRENT_BRAKE(uart, data, controller_id); result = dict()     # data: {"current": "0"}
+
             self.stats["success"] += 1
             return result
         except Exception as e:
             if   "Timeout receive packet" in str(e):
                 self.stats["fail_timeout"] += 1
-            elif "incorect CRC" in str(e):
+            elif "incorrect CRC" in str(e):
                 self.stats["fail_crc"] += 1
             else:
                 self.stats["failed_other"] += 1
+
+            print("Exception in perform_command")
+            print(traceback.format_exc())
+            print()
             return None
 
     def COMM_GET_VALUES(self, uart: UART, controller_id: int = -1) -> dict:
@@ -84,14 +93,47 @@ class Commands:
         result = uart.receive_packet()
 
         dec = dict() ; i = 0
-        dec["fw_version"] = result.data[i]                                   ; i+=1
-        dec["fw_version_major"] = result.data[i]                             ; i+=1
-        dec["fw_version_minor"] = result.data[i]                             ; i+=1
+        dec["fw_version"] = result.data[i]          ; i += 1
+        dec["fw_version_major"] = result.data[i]    ; i += 1
+        dec["fw_version_minor"] = result.data[i]    ; i += 1
 
-        # hw_name = result.data[i - 1: result.data[i-1:].find(b'\x00') + 3]
-        # dec["hw_name"] = hw_name
+        model = result.data[i-1:]
+        model_end = model.find(bytes([0x00]))
+        model = model[:model_end]
+        dec["hw_name"] = model.decode()
+        i += model_end
 
+        uuid = result.data[i:i+12]
+        dec["mc_uuid"] = uuid.hex()
+        i += 12
+
+        dec["pairing_done"] = result.data[i]        ; i += 1
+        dec["test_ver_number"] = result.data[i]     ; i += 1
+        dec["hw_type_vesc"] = result.data[i]        ; i += 1
         return dec
+
+    def COMM_SET_CURRENT_BRAKE(self, uart: UART, args: dict, controller_id: int = -1) -> None:
+        current = args["current"]
+
+        current = current * 1000
+        data = uint32_to_bytes(current)
+
+        uart.send_command(datatypes.COMM_Types.COMM_SET_CURRENT, controller_id=controller_id, data=data)
+        return None
+
+    def COMM_GET_APPCONF(self, uart: UART, controller_id: int = -1) -> dict:
+        uart.send_command(datatypes.COMM_Types.COMM_GET_APPCONF, controller_id=controller_id)
+        result = uart.receive_packet()
+
+        print(result.data)
+        print(result.data.hex())
+
+        #print(result)
+        return {}
+
+    def COMM_REBOOT(self, uart: UART, controller_id: int = -1) -> None:
+        uart.send_command(datatypes.COMM_Types.COMM_REBOOT, controller_id=controller_id)
+        return None
 
     def scan_can_bus(self, uart: UART):
         vesc_ids = []

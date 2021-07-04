@@ -1,3 +1,7 @@
+import http.server
+import traceback
+from typing import Any, Union
+
 import ujson as json
 import random
 import threading
@@ -45,14 +49,13 @@ class ApiServer:
             except Exception as e:
                 self.send_error(400)
                 self.end_headers()
+
+                print("Exception in handler parser(method)")
+                print(traceback.format_exc())
+                print()
                 return
 
-            if "Bot" in request.user_agent:
-                self.send_error(403)
-                self.end_headers()
-                return
-
-            # i = random.randint(10, 99)
+            #i = random.randint(10, 99)
             #print(i, "new request from " + request.client_ip + ":", request.api_endpoint, request.json_root)
 
             try:
@@ -61,13 +64,17 @@ class ApiServer:
                 print(e)
                 self.send_error(500)
                 self.end_headers()
-                #raise e # todo: remove after debug
+
+                print("Exception in logic_obj.work_packet(request)")
+                print(traceback.format_exc())
+                print()
                 return
 
             if answer is None:
                 self.send_error(501)
                 self.end_headers()
                 return
+
 
             #print(i, "answer for " + request.client_ip + ":", answer)
 
@@ -79,7 +86,8 @@ class ApiServer:
 
                 answer = json.dumps(answer, indent=request.requested_indent)
                 answer = answer.encode(encoding="utf-8")
-                self.wfile.write(answer)
+                try: self.wfile.write(answer)
+                except: pass
 
 
         def do_GET(self):
@@ -87,6 +95,12 @@ class ApiServer:
 
         def do_POST(self):
             self.handler("post")
+
+        # noinspection PyShadowingBuiltins
+        def log_error(self, format: str, *args: Any) -> None:
+            if logic_obj.uart.debug: super().log_error(format, args)
+        def log_request(self, code: Union[int, str] = ..., size: Union[int, str] = ...) -> None:
+            if logic_obj.uart.debug: super().log_request(code, size)
 
     def start_server(self, host, port, blocking = True):
         if blocking:

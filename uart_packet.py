@@ -8,12 +8,17 @@ class UART_Packet:
     command: bytes = None
     data = None
 
+    long_packet = False
     crc_ok = False  # only for incoming packets
     final = False
 
     def parse(self, full: bytes, allow_incorrect_crc: bool = False):
         self.full = full
-        self.body = full[2:-3]
+
+        if self.long_packet:
+            self.body = full[3:-3]
+        else:
+            self.body = full[2:-3]
 
         self.command = bytes(self.body[0])
         self.data = self.body[1:]
@@ -23,7 +28,7 @@ class UART_Packet:
         self.crc_ok = need_crc == incoming_crc
 
         if not self.crc_ok and not allow_incorrect_crc:
-            raise Exception("Incoming packet have incorect CRC (" + str(need_crc) + " != " + str(incoming_crc) + ")")
+            raise Exception("Incoming packet have incorrect CRC (" + str(need_crc) + " != " + str(incoming_crc) + ")")
 
         return self
 

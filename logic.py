@@ -24,9 +24,6 @@ class Logic:
 
         # connecting to serial port
         if packet.api_endpoint == "/uart/connect":
-            if self.uart is not None and self.uart.status == datatypes.COM_States.connected:
-                self.uart.serial_port.close()
-
             self.uart = uart.UART(bool(packet.json_root.get("debug_enabled", False)))
             connect_result = self.uart.connect(packet.json_root["path"], int(packet.json_root["speed"]))
 
@@ -50,7 +47,7 @@ class Logic:
             if res is None: return {"success": False, "message": "unknown_command_or_error"}
             return {"success": True, "vesc_ids_on_bus": res.get("ids")}
 
-        if packet.api_endpoint == "/vescs/command/":
+        if packet.api_endpoint.startswith("/vescs/command/"):
             command = packet.api_endpoint[15:]
             vesc_ids: list = packet.json_root["vesc_ids"]
 
@@ -60,7 +57,7 @@ class Logic:
                 comm_result = self.vesc.perform_command(self.uart, command, vesc_id)
 
                 if comm_result is None: return {"success": False, "message": "unknown_command_or_error"}
-                answer["data"][vesc_id] = self.vesc.perform_command(self.uart, command, vesc_id)
+                answer["data"][vesc_id] = comm_result
             answer["success"] = True
             return answer
 
