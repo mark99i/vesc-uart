@@ -98,9 +98,9 @@ class ApiServer:
 
         # noinspection PyShadowingBuiltins
         def log_error(self, format: str, *args: Any) -> None:
-            if logic_obj.uart.debug: super().log_error(format, args)
+            if logic_obj.uart is not None and logic_obj.uart.debug: super().log_error(format, args)
         def log_request(self, code: Union[int, str] = ..., size: Union[int, str] = ...) -> None:
-            if logic_obj.uart.debug: super().log_request(code, size)
+            if logic_obj.uart is not None and logic_obj.uart.debug: super().log_request(code, size)
 
     def start_server(self, host, port, blocking = True):
         if blocking:

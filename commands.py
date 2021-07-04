@@ -1,5 +1,7 @@
+import base64
 import traceback
 
+import commands_configuration
 import conv
 import datatypes
 from uart import UART
@@ -12,7 +14,7 @@ class Commands:
     stats = {"success": 0, "fail_timeout": 0, "fail_crc": 0, "failed_other": 0}
 
     # noinspection PyTypeChecker
-    def perform_command(self, uart: UART, command: str, controller_id: int = -1, data: dict = None) -> dict:
+    def perform_command(self, uart: UART, command: str, controller_id: int = -1, args: dict = None) -> dict:
         try:
             result: dict = None
 
@@ -29,7 +31,11 @@ class Commands:
                 result = self.COMM_FW_VERSION(uart, controller_id)
 
             if command == "COMM_SET_CURRENT_BRAKE":
-                self.COMM_SET_CURRENT_BRAKE(uart, data, controller_id); result = dict()     # data: {"current": "0"}
+                self.COMM_SET_CURRENT_BRAKE(uart, args, controller_id)         # data: {"current": "0"}
+                result = dict()
+
+            if command == "COMM_GET_MCCONF":
+                result = self.COMM_GET_MCCONF(uart, controller_id, args)       # data: {"need_bin": False}
 
             self.stats["success"] += 1
             return result
@@ -97,6 +103,8 @@ class Commands:
         dec["fw_version_major"] = result.data[i]    ; i += 1
         dec["fw_version_minor"] = result.data[i]    ; i += 1
 
+        dec["fw_version_generic"] = float(str(dec.get("fw_version")) + "." + str(dec.get("fw_version_major")))
+
         model = result.data[i-1:]
         model_end = model.find(bytes([0x00]))
         model = model[:model_end]
@@ -123,13 +131,23 @@ class Commands:
 
     def COMM_GET_APPCONF(self, uart: UART, controller_id: int = -1) -> dict:
         uart.send_command(datatypes.COMM_Types.COMM_GET_APPCONF, controller_id=controller_id)
-        result = uart.receive_packet()
+        result = uart.receive_packet(timeout_ms=300)
 
-        print(result.data)
-        print(result.data.hex())
+        #print(result.data)
+        #print(result.data.hex())
+        return {"not_parsed_data": base64.b64encode(result.data).decode()}
 
-        #print(result)
-        return {}
+    def COMM_GET_MCCONF(self, uart: UART, controller_id: int = -1, args=None) -> dict:
+        if args is None: args = {"need_bin": False}
+        need_bin = args.get("need_bin", False)
+
+        fw = self.COMM_FW_VERSION(uart, controller_id)
+
+        uart.send_command(datatypes.COMM_Types.COMM_GET_MCCONF, controller_id=controller_id)
+        result = uart.receive_packet(timeout_ms=400)
+
+        ok, result = commands_configuration.deserialize_mcconf(result, fw["fw_version_generic"], need_bin)
+        return result
 
     def COMM_REBOOT(self, uart: UART, controller_id: int = -1) -> None:
         uart.send_command(datatypes.COMM_Types.COMM_REBOOT, controller_id=controller_id)

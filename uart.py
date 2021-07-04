@@ -48,6 +48,7 @@ class UART:
                 self.network_port = socket.socket()
                 self.network_port.connect((adr, int(port)))
                 self.network_port.settimeout(0.001)
+                self.network_port.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 self.network_port.setblocking(False)
 
             else:
@@ -83,7 +84,7 @@ class UART:
             if self.debug: print("UART:SND (b)", packet.full)
 
             if self.network_port is not None:
-                self.network_port.send(packet.full)
+                self.network_port.sendall(packet.full)
             else:
                 self.serial_port.write(packet.full)
 
@@ -105,7 +106,7 @@ class UART:
             rcv_need_len = 0
 
             if self.network_port is not None:
-                timeout_ms += 1000
+                timeout_ms += 200
 
             while True:
                 if self.network_port is not None:

@@ -49,12 +49,13 @@ class Logic:
 
         if packet.api_endpoint.startswith("/vescs/command/"):
             command = packet.api_endpoint[15:]
+            args = packet.json_root.get("args")
             vesc_ids: list = packet.json_root["vesc_ids"]
 
-            answer = {"data": {}}
+            answer = {"command": command, "args": args, "success": False, "data": {}}
             for vesc_id in vesc_ids:
                 if int(vesc_id) < 0: vesc_id = -1
-                comm_result = self.vesc.perform_command(self.uart, command, vesc_id)
+                comm_result = self.vesc.perform_command(self.uart, command, vesc_id, packet.json_root.get("args"))
 
                 if comm_result is None: return {"success": False, "message": "unknown_command_or_error"}
                 answer["data"][vesc_id] = comm_result

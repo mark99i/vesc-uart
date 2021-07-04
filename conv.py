@@ -1,3 +1,5 @@
+import math
+
 CRC16_XMODEM_TABLE = [
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
     0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
@@ -70,3 +72,37 @@ def uint_from_bytes(data: bytes) -> int:
 def binstr_to_bytes(binstr: str) -> bytes:
     binstr = binstr.replace(" ", "")
     return int(binstr, 2).to_bytes((len(binstr) + 7) // 8, 'big')
+
+# https://github.com/vedderb/bldc/blob/master/commands.c
+def float32_to_bytes_auto(number: float) -> bytes:
+    sig, e = math.frexp(number)
+    sig_abs = math.fabs(sig)
+
+    sig_i = 0
+
+    if sig_abs >= 0.5:
+        sig_i = int((sig_abs - 0.5) * 2.0 * 8388608.0)
+        e += 126
+
+    res = int(((e & 0xFF) << 23) | (sig_i & 0x7FFFFF))
+    if sig < 0:
+        res |= 1 << 31
+
+    return uint32_to_bytes(res)
+
+def float32_from_bytes_auto(data: bytes) -> float:
+    res = uint_from_bytes(data)
+
+    e = int((res >> 23) & 0xFF)
+    sig_i = int(res & 0x7FFFFF)
+    neg = bool(res & (1 << 31))
+
+    sig = 0.0
+    if e != 0 or sig_i != 0:
+        sig = float(sig_i) / (8388608.0 * 2.0) + 0.5
+        e -= 126
+
+    if neg:
+        sig = -sig
+
+    return math.ldexp(sig, e)

@@ -43,8 +43,17 @@ class UART_Packet:
         self.body += self.command     # command (1 byte)
         self.body += data             # data
 
-        self.full = bytearray([0x02])                       # start byte
-        self.full += bytes([len(self.body)])                # packet len byte
+        p_len = len(self.body)
+        self.long_packet = p_len > 255
+
+        self.full = bytearray()
+        if self.long_packet:
+            self.full += bytes([0x03])                  # start byte (for long packet)
+            self.full += conv.uint16_to_bytes(p_len)    # packet len byte (for long packet 2 bytes)
+        else:
+            self.full += bytes([0x02])                  # start byte
+            self.full += bytes([p_len])                 # packet len byte
+
         self.full += self.body                              # packet body
         self.full += conv.crc16_as_uint16(bytes(self.body)) # crc
         self.full += bytes([0x03])                          # end byte
