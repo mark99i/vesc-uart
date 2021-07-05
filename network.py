@@ -13,6 +13,8 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler, HTTPServer
 logic_obj = logic.Logic()
 
 class ApiServer:
+    server: HTTPServer = None
+
     class RequestHandler(BaseHTTPRequestHandler):
 
         def parser(self, method : str) -> RequestPacket:
@@ -109,6 +111,11 @@ class ApiServer:
             threading.Thread(target=self.__internal_start_server, args=(host, port), name="main_server_thread").start()
 
     def __internal_start_server(self, host, port):
-        server = HTTPServer((host, port), self.RequestHandler)
-        server.serve_forever()
+        self.server = HTTPServer((host, port), self.RequestHandler)
+        self.server.serve_forever()
 
+    def stop_server(self):
+        if self.server is not None:
+            self.server.socket.close()
+            #self.server.shutdown()
+            #self.server.server_close()

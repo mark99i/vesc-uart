@@ -9,6 +9,8 @@ class Logic:
     local_id = -1
 
     def work_packet(self, packet: RequestPacket) -> dict:
+        if self.uart is not None and self.uart.debug:
+            print("received request:", packet.__dict__)
 
         # get service/uart status and stats
         if packet.api_endpoint == "/uart/status":

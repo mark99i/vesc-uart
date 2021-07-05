@@ -1,5 +1,6 @@
 import base64
 import json
+import signal
 import socket
 
 import serial
@@ -9,11 +10,25 @@ import uart
 import datatypes
 import commands
 import network
+import sys
+
 
 print("starting server")
 server = network.ApiServer()
+
+def signal_exit(signum, frame):
+    print("stopping service by signal")
+    server.stop_server()
+    exit(0)
+
+if sys.platform == "linux":
+    signal.signal(signal.SIGINT, signal_exit)
+    signal.signal(signal.SIGTERM, signal_exit)
+
 server.start_server("0.0.0.0", 2002)
 exit(0)
+
+
 
 uart = uart.UART(debug=True)
 uart.connect("192.168.015.051:65102", 115200)

@@ -4,7 +4,7 @@ import traceback
 from conv import *
 from uart_packet import UART_Packet
 
-def deserialize_mcconf(result: UART_Packet, fw_ver: float, need_bin = False) -> tuple[bool, dict]:
+def deserialize_mcconf(result: UART_Packet, fw_ver: float, need_bin = False):
     ok = False
     dec = dict()
     try:
