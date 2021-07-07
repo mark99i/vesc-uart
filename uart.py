@@ -19,6 +19,7 @@ class UART:
 
     last_error: Exception = None
     debug = False
+    rcv_timeout_ms: int = 100
 
     IP_PORT_REGEXP = re.compile('[0-9]{3}.[0-9]{3}.[0-9]{3}.[0-9]{3}:[0-9]{5}')
 
@@ -28,8 +29,9 @@ class UART:
         self.debug = debug
 
     # noinspection PyTypeChecker
-    def connect(self, com_port_path: str, speed: int, rcv_timeout_ms: int = 0):
+    def connect(self, com_port_path: str, speed: int, rcv_timeout_ms: int = 100):
 
+        self.rcv_timeout_ms = rcv_timeout_ms
         try:
             if self.network_port is not None:
                 try:
@@ -44,10 +46,10 @@ class UART:
 
             if bool(self.IP_PORT_REGEXP.match(com_port_path)):
                 adr, port = com_port_path.split(":")
-                adr = adr.replace(".0", ".")
+                adr = '.'.join(str(int(part)) for part in adr.split('.'))
                 self.network_port = socket.socket()
                 self.network_port.connect((adr, int(port)))
-                self.network_port.settimeout(0.001)
+                self.network_port.settimeout(rcv_timeout_ms + 0.001)
                 self.network_port.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 self.network_port.setblocking(False)
 
@@ -56,7 +58,7 @@ class UART:
                     port=com_port_path,
                     baudrate=speed,
                     bytesize=8,
-                    timeout=rcv_timeout_ms,
+                    timeout=0,
                     stopbits=serial.STOPBITS_ONE)
 
                 self.serial_path = com_port_path
@@ -96,7 +98,7 @@ class UART:
             pass
         return rcvd
 
-    def receive_packet(self, timeout_ms: int = 100, allow_incorrect_crc: bool = False) -> uart_packet.UART_Packet:
+    def receive_packet(self, timeout_ms: int = rcv_timeout_ms, allow_incorrect_crc: bool = False) -> uart_packet.UART_Packet:
         with self.multithread_lock:
             rcvd = bytearray()
 
@@ -110,7 +112,7 @@ class UART:
 
             while True:
                 if self.network_port is not None:
-                    rcvd += self.__receive_network(300)
+                    rcvd += self.__receive_network(1000)
                 else:
                     rcvd += self.serial_port.read(300)
 

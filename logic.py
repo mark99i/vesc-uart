@@ -27,7 +27,7 @@ class Logic:
         # connecting to serial port
         if packet.api_endpoint == "/uart/connect":
             self.uart = uart.UART(bool(packet.json_root.get("debug_enabled", False)))
-            connect_result = self.uart.connect(packet.json_root["path"], int(packet.json_root["speed"]))
+            connect_result = self.uart.connect(packet.json_root["path"], int(packet.json_root["speed"]), packet.json_root.get("rcv_timeout_ms", 100))
 
             if connect_result:
                 return {"success": True, "status": self.uart.status.name}
