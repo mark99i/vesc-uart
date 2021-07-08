@@ -35,7 +35,7 @@ class ApiServer:
             if "?" in result.full_url:
                 query = result.full_url[result.full_url.find("?") + 1:]
                 data = dict(urllib.parse.parse_qsl(query))
-                result.json_root = result.json_root | data
+                result.json_root = {**result.json_root, **data}
 
                 result.api_endpoint = result.full_url[:result.full_url.find("?")]
             else:

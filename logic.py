@@ -52,7 +52,10 @@ class Logic:
         if packet.api_endpoint.startswith("/vescs/command/"):
             command = packet.api_endpoint[15:]
             args = packet.json_root.get("args")
-            vesc_ids: list = packet.json_root["vesc_ids"]
+            vesc_ids = packet.json_root.get("vesc_ids", None)
+            vesc_id_one = packet.json_root.get("vesc_id", None)
+            if vesc_ids is None and vesc_id_one is not None:
+                vesc_ids = [vesc_id_one]
 
             answer = {"command": command, "args": args, "success": False, "data": {}}
             for vesc_id in vesc_ids:
