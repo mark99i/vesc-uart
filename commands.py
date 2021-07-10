@@ -57,16 +57,16 @@ class Commands:
         result = uart.receive_packet()
 
         dec = dict() ; i = 0
-        dec["temp_fet_filtered"] = float_from_bytes(result.data[i : i+2])       ; i+=2
-        dec["temp_motor_filtered"] = float_from_bytes(result.data[i : i+2])     ; i+=2
+        dec["temp_fet_filtered"] = float_from_bytes(result.data[i : i+2])           ; i+=2
+        dec["temp_motor_filtered"] = float_from_bytes(result.data[i : i+2])         ; i+=2
 
-        dec["avg_motor_current"] = float_from_bytes(result.data[i : i+4], 1e2)  ; i+=4
-        dec["avg_input_current"] = float_from_bytes(result.data[i : i+4], 1e2)  ; i+=4
-        dec["avg_id"] = float_from_bytes(result.data[i : i+4], 1e2)             ; i+=4
-        dec["avg_iq"] = float_from_bytes(result.data[i : i+4], 1e2)             ; i+=4
+        dec["avg_motor_current"] = float_from_bytes(result.data[i : i+4], 1e2, True); i+=4
+        dec["avg_input_current"] = float_from_bytes(result.data[i : i+4], 1e2, True); i+=4
+        dec["avg_id"] = float_from_bytes(result.data[i : i+4], 1e2)                 ; i+=4
+        dec["avg_iq"] = float_from_bytes(result.data[i : i+4], 1e2, True)           ; i+=4
 
         dec["duty_cycle"] = float_from_bytes(result.data[i : i+2], 1e3)         ; i+=2
-        dec["rpm"] = float_from_bytes(result.data[i : i+4], 1e0)                ; i+=4
+        dec["rpm"] = float_from_bytes(result.data[i : i+4], 1e0, True)          ; i+=4
         dec["voltage"] = float_from_bytes(result.data[i : i+2], 1e1)            ; i+=2
 
         dec["amp_hours"] = float_from_bytes(result.data[i : i+4], 1e4)          ; i+=4
@@ -75,7 +75,7 @@ class Commands:
         dec["watt_hours"] = float_from_bytes(result.data[i : i+4], 1e4)         ; i+=4
         dec["watt_hours_charged"] = float_from_bytes(result.data[i : i+4], 1e4) ; i+=4
 
-        dec["tachometer"] = uint_from_bytes(result.data[i : i+4])               ; i+=4
+        dec["tachometer"] = uint_from_bytes(result.data[i : i+4], True)         ; i+=4
         dec["tachometer_abs"] = uint_from_bytes(result.data[i : i+4])           ; i+=4
 
         dec["fault_code"] = result.data[i]                                      ; i+=1
@@ -90,7 +90,7 @@ class Commands:
         dec["temp_mos3"] = float_from_bytes(result.data[i : i+2], 1e1)          ; i+=2
 
         dec["avg_vd"] = float_from_bytes(result.data[i : i+4], 1e3)             ; i+=4
-        dec["avg_vq"] = float_from_bytes(result.data[i : i+4], 1e3)             ; i+=4
+        dec["avg_vq"] = float_from_bytes(result.data[i : i+4], 1e3, True)       ; i+=4
 
         return dec
 

@@ -31,7 +31,7 @@ exit(0)
 
 
 uart = uart.UART(debug=True)
-uart.connect("192.168.015.051:65102", 115200)
+uart.connect("192.168.009.022:65102", 115200)
 print("started")
 
 #time.sleep(15)
@@ -45,7 +45,8 @@ while 1:
     #res3 = s.COMM_SET_CURRENT_BRAKE(uart, {"current": 2}, -1)
     #res4 = s.COMM_SET_CURRENT_BRAKE(uart, {"current": 20}, 8)
 
-    f = s.COMM_GET_MCCONF(uart, -1, {"need_bin": True})
+    #f = s.COMM_GET_MCCONF(uart, -1, {"need_bin": True})
+    f = s.COMM_GET_VALUES(uart)
     #b = base64.b64decode(f.get("not_parsed_data"))
 
     #res = s.COMM_REBOOT(uart, -1)

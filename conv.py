@@ -52,21 +52,21 @@ def float16_to_bytes(number: float, scale: float) -> bytes:
     return uint16_to_bytes(int(number * scale))
 
 
-def uint32_to_bytes(number:int) -> bytes:
-    return number.to_bytes(4, byteorder='big')
+def uint32_to_bytes(number: int, signed: bool = False) -> bytes:
+    return number.to_bytes(4, byteorder='big', signed=signed)
 
-def uint16_to_bytes(number: int) -> bytes:
-    return number.to_bytes(2, byteorder='big')
+def uint16_to_bytes(number: int, signed: bool = False) -> bytes:
+    return number.to_bytes(2, byteorder='big', signed=signed)
 
-def uint8_to_bytes(number: int) -> bytes:
-    return number.to_bytes(1, byteorder='big')
+def uint8_to_bytes(number: int, signed: bool = False) -> bytes:
+    return number.to_bytes(1, byteorder='big', signed=signed)
 
 
-def float_from_bytes(data: bytes, scale: float = 1e1) -> float:
-    return uint_from_bytes(data) / scale
+def float_from_bytes(data: bytes, scale: float = 1e1, signed: bool = False) -> float:
+    return uint_from_bytes(data, signed) / scale
 
-def uint_from_bytes(data: bytes) -> int:
-    return int.from_bytes(data, byteorder='big')
+def uint_from_bytes(data: bytes, signed: bool = False) -> int:
+    return int.from_bytes(data, byteorder='big', signed=signed)
 
 
 def binstr_to_bytes(binstr: str) -> bytes:
