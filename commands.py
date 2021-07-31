@@ -35,6 +35,9 @@ class Commands:
                 self.COMM_REBOOT(uart, controller_id)
                 result = dict()
 
+            if command == "COMM_PING_CAN":
+                result = self.COMM_PING_CAN(uart, controller_id)
+
             if command == "COMM_SET_CURRENT_BRAKE":
                 self.COMM_SET_CURRENT_BRAKE(uart, args, controller_id)         # data: {"current": "0"}
                 result = dict()
@@ -136,11 +139,21 @@ class Commands:
 
     def COMM_GET_APPCONF(self, uart: UART, controller_id: int = -1) -> dict:
         uart.send_command(datatypes.COMM_Types.COMM_GET_APPCONF, controller_id=controller_id)
-        result = uart.receive_packet(timeout_ms=300)
+        result = uart.receive_packet(timeout_ms=500)
 
         #print(result.data)
         #print(result.data.hex())
         return {"not_parsed_data": base64.b64encode(result.data).decode()}
+
+    def COMM_PING_CAN(self, uart: UART, controller_id: int = -1) -> dict:
+        uart.send_command(datatypes.COMM_Types.COMM_PING_CAN, controller_id=controller_id)
+        result = uart.receive_packet(timeout_ms=5000)
+
+        vesc_ids = []
+        for vesc_id in result.data:
+            vesc_ids.append(vesc_id)
+
+        return {'vesc_on_bus': vesc_ids}
 
     def COMM_GET_MCCONF(self, uart: UART, controller_id: int = -1, args=None) -> dict:
         if args is None: args = {"need_bin": False}
@@ -149,7 +162,7 @@ class Commands:
         fw = self.COMM_FW_VERSION(uart, controller_id)
 
         uart.send_command(datatypes.COMM_Types.COMM_GET_MCCONF, controller_id=controller_id)
-        result = uart.receive_packet(timeout_ms=400)
+        result = uart.receive_packet(timeout_ms=500)
 
         ok, result = commands_configuration.deserialize_mcconf(result, fw["fw_version_generic"], need_bin)
         return result
@@ -157,19 +170,6 @@ class Commands:
     def COMM_REBOOT(self, uart: UART, controller_id: int = -1) -> None:
         uart.send_command(datatypes.COMM_Types.COMM_REBOOT, controller_id=controller_id)
         return None
-
-    def scan_can_bus(self, uart: UART):
-        vesc_ids = []
-
-        for i in range(0, 255):
-            uart.send_command(datatypes.COMM_Types.COMM_FW_VERSION, controller_id=i)
-
-            try: uart.receive_packet(timeout_ms=20)
-            except: continue
-
-            vesc_ids.append(i)
-
-        return vesc_ids
 
     def get_local_controller_id(self, uart: UART) -> int:
         mask_controller_id = "00000000 00000010 00000000 00000000"

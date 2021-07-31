@@ -25,13 +25,17 @@ if sys.platform == "linux":
     signal.signal(signal.SIGINT, signal_exit)
     signal.signal(signal.SIGTERM, signal_exit)
 
-server.start_server("0.0.0.0", 2002)
+server.start_server("0.0.0.0", 2002) # blocking
 exit(0)
 
 
 
+##########
+## Testing zone
+##########
+
 uart = uart.UART(debug=True)
-uart.connect("192.168.009.022:65102", 115200)
+uart.connect("192.168.015.051:65102", 115200)
 print("started")
 
 #time.sleep(15)
@@ -46,7 +50,8 @@ while 1:
     #res4 = s.COMM_SET_CURRENT_BRAKE(uart, {"current": 20}, 8)
 
     #f = s.COMM_GET_MCCONF(uart, -1, {"need_bin": True})
-    f = s.COMM_GET_VALUES(uart)
+    f = s.COMM_PING_CAN(uart)
+    print(f)
     #b = base64.b64decode(f.get("not_parsed_data"))
 
     #res = s.COMM_REBOOT(uart, -1)
@@ -56,8 +61,8 @@ while 1:
     print()
     print()
 
-    print(json.dumps(f, indent=4))
-    print(len(json.dumps(f, indent=4)))
+    #print(json.dumps(f, indent=4))
+    #print(len(json.dumps(f, indent=4)))
 
     #res = s.COMM_FW_VERSION(uart, -1)
     #print(json.dumps(res, indent=4))
