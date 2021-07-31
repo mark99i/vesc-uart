@@ -1,4 +1,5 @@
 import base64
+import time
 import traceback
 
 import commands_configuration
@@ -29,6 +30,10 @@ class Commands:
         
             if command == "COMM_FW_VERSION":
                 result = self.COMM_FW_VERSION(uart, controller_id)
+
+            if command == "COMM_REBOOT":
+                self.COMM_REBOOT(uart, controller_id)
+                result = dict()
 
             if command == "COMM_SET_CURRENT_BRAKE":
                 self.COMM_SET_CURRENT_BRAKE(uart, args, controller_id)         # data: {"current": "0"}
