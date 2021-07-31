@@ -1,5 +1,4 @@
 import base64
-import time
 import traceback
 
 import commands_configuration
@@ -9,7 +8,6 @@ from uart import UART
 from conv import *
 
 class Commands:
-    SCAN_CAN = "SCAN_CAN"
     LOCAL_ID = "LOCAL_ID"
 
     stats = {"success": 0, "fail_timeout": 0, "fail_crc": 0, "failed_other": 0}
@@ -18,9 +16,6 @@ class Commands:
     def perform_command(self, uart: UART, command: str, controller_id: int = -1, args: dict = None) -> dict:
         try:
             result: dict = None
-
-            if command == "SCAN_CAN":
-                result = {"ids": self.scan_can_bus(uart)}
 
             if command == "LOCAL_ID":
                 result = {"id": self.get_local_controller_id(uart)}

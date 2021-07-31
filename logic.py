@@ -44,11 +44,6 @@ class Logic:
             if res is None: return {"success": False, "message": "unknown_command_or_error"}
             return {"success": True, "controller_id": int(res.get("id"))}
 
-        if packet.api_endpoint == "/vesc/local/can/scan":
-            res = self.vesc.perform_command(self.uart, Commands.SCAN_CAN)
-            if res is None: return {"success": False, "message": "unknown_command_or_error"}
-            return {"success": True, "vesc_ids_on_bus": res.get("ids")}
-
         if packet.api_endpoint.startswith("/vescs/command/"):
             command = packet.api_endpoint[15:]
             args = packet.json_root.get("args")
