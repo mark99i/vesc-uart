@@ -8,20 +8,18 @@ import traceback
 import conv
 from datatypes import COM_States, COMM_Types
 import uart_packet
+from vesc_interfaces.interface import VescInterface
+from vesc_interfaces.interface_get import get_interface_by_path
+
 
 class UART:
     status: COM_States = COM_States.idle
-    serial_path: str = None
-    serial_speed: int = None
 
-    serial_port: serial.Serial = None
-    network_port: socket.socket = None
+    interface: VescInterface = None
 
     last_error: Exception = None
     debug = False
     rcv_timeout_ms: int = 100
-
-    IP_PORT_REGEXP = re.compile('[0-9]{3}.[0-9]{3}.[0-9]{3}.[0-9]{3}:[0-9]{5}')
 
     multithread_lock = Lock()
 
@@ -29,48 +27,19 @@ class UART:
         self.debug = debug
 
     # noinspection PyTypeChecker
-    def connect(self, com_port_path: str, speed: int, rcv_timeout_ms: int = 100):
-
+    def connect(self, path: str, legacy_speed: int, rcv_timeout_ms: int = 100):
         self.rcv_timeout_ms = rcv_timeout_ms
         try:
-            if self.network_port is not None:
-                try:
-                    self.network_port.shutdown(socket.SHUT_RDWR)
-                    self.network_port.close()
-                finally:
-                    self.network_port = None
+            if self.interface is not None and self.interface.connected:
+                self.interface.disconnect()
 
-            if self.serial_port is not None and bool(self.serial_port.is_open):
-                self.serial_port.close()
-                self.serial_port = None
-
-            if bool(self.IP_PORT_REGEXP.match(com_port_path)):
-                adr, port = com_port_path.split(":")
-                adr = '.'.join(str(int(part)) for part in adr.split('.'))
-                self.network_port = socket.socket()
-                self.network_port.connect((adr, int(port)))
-                self.network_port.settimeout(rcv_timeout_ms + 0.001)
-                self.network_port.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                self.network_port.setblocking(False)
-
-            else:
-                self.serial_port = serial.Serial(
-                    port=com_port_path,
-                    baudrate=speed,
-                    bytesize=8,
-                    timeout=0,
-                    stopbits=serial.STOPBITS_ONE)
-
-                self.serial_path = com_port_path
-                self.serial_speed = speed
-                self.serial_port.flushInput()
-                self.serial_port.flushOutput()
+            self.interface = get_interface_by_path(path, legacy_speed)
+            self.interface.connect()
 
             self.status = COM_States.connected
             return True
         except Exception as e:
-            self.serial_port = None
-            self.network_port = None
+            self.interface = None
             self.status = COM_States.connect_err
             self.last_error = e
 
@@ -85,18 +54,7 @@ class UART:
             if self.debug: print("UART:SND (h)", packet.full.hex())
             if self.debug: print("UART:SND (b)", packet.full)
 
-            if self.network_port is not None:
-                self.network_port.sendall(packet.full)
-            else:
-                self.serial_port.write(packet.full)
-
-    def __receive_network(self, p_size: int) -> bytearray:
-        rcvd = bytearray()
-        try:
-            rcvd += self.network_port.recv(p_size)
-        except:
-            pass
-        return rcvd
+            self.interface.send(packet.full)
 
     def receive_packet(self, timeout_ms: int = rcv_timeout_ms, allow_incorrect_crc: bool = False) -> uart_packet.UART_Packet:
         with self.multithread_lock:
@@ -107,14 +65,11 @@ class UART:
 
             rcv_need_len = 0
 
-            if self.network_port is not None:
+            if self.interface.type == self.interface.T_TCP:
                 timeout_ms += 200
 
             while True:
-                if self.network_port is not None:
-                    rcvd += self.__receive_network(1000)
-                else:
-                    rcvd += self.serial_port.read(300)
+                rcvd += self.interface.receive()
 
                 if rcv_need_len == 0 and len(rcvd) > 3:
                     if rcvd[0] == 2:

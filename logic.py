@@ -20,14 +20,17 @@ class Logic:
                 res = self.vesc.perform_command(self.uart, Commands.LOCAL_ID)
                 if res is not None: self.local_id = int(res.get("id"))
 
-                return {"success": True, "status": self.uart.status.name, "speed": self.uart.serial_speed,
-                        "path": self.uart.serial_path, "last_err": str(self.uart.last_error),
+                return {"success": True, "status": self.uart.status.name,
+                        "path": self.uart.interface.full_path if self.uart.interface is not None else "-",
+                        "last_err": str(self.uart.last_error),
                         "debug_enabled": self.uart.debug, "local_id": self.local_id, "stats": self.vesc.stats}
 
         # connecting to serial port
         if packet.api_endpoint == "/uart/connect":
             self.uart = uart.UART(bool(packet.json_root.get("debug_enabled", False)))
-            connect_result = self.uart.connect(packet.json_root["path"], int(packet.json_root["speed"]), packet.json_root.get("rcv_timeout_ms", 100))
+            connect_result = self.uart.connect(packet.json_root["path"],
+                                               int(packet.json_root.get("speed", 0)),
+                                               packet.json_root.get("rcv_timeout_ms", 100))
 
             if connect_result:
                 return {"success": True, "status": self.uart.status.name}
