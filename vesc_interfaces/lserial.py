@@ -35,7 +35,7 @@ class SerialPort(VescInterface, ABC):
         pass
 
     def receive(self):
-        return self.port.read(300)
+        return self.port.read(1000)
 
     def send(self, data: bytes):
         self.port.write(data)

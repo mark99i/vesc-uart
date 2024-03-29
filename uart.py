@@ -20,11 +20,14 @@ class UART:
     last_error: Exception = None
     debug = False
     rcv_timeout_ms: int = 100
+    need_drop_buffers: bool = False
 
-    multithread_lock = Lock()
+    multithread_lock: Lock
 
     def __init__(self, debug = False):
         self.debug = debug
+        self.interface = None
+        self.multithread_lock = Lock()
 
     # noinspection PyTypeChecker
     def connect(self, path: str, legacy_speed: int, rcv_timeout_ms: int = 100):
@@ -49,6 +52,12 @@ class UART:
 
     def send_command(self, command: COMM_Types, data: bytes = bytes(), controller_id: int = -1):
         with self.multithread_lock:
+            if self.need_drop_buffers:
+                if self.debug: print("UART:Perform receive buffer drop after timeout error")
+                time.sleep(0.2)
+                self.interface.receive()
+                self.need_drop_buffers = False
+
             packet = uart_packet.UART_Packet()
             packet.build_packet(command, data, controller_id)
             if self.debug: print("UART:SND (h)", packet.full.hex())
@@ -66,7 +75,7 @@ class UART:
             rcv_need_len = 0
 
             if self.interface.type == self.interface.T_TCP:
-                timeout_ms += 200
+                timeout_ms += 300
 
             while True:
                 rcvd += self.interface.receive()
@@ -83,6 +92,7 @@ class UART:
 
                 op_time_ms = int(time.time() * 1000) - started_op_time_ms
                 if op_time_ms > timeout_ms:
+                    self.need_drop_buffers = True
                     raise Exception("Timeout receive packet")
 
             packet = uart_packet.UART_Packet()
